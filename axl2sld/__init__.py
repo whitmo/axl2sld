@@ -50,6 +50,8 @@ def transform_to_sldtree(layer):
     SLD.subElement(fts, "Abstract").text = "styles for the alachua project"
     SLD.subElement(fts, "FeatureTypeName").text = layer_name
     add_rules(fts, layer)
+    return sldtree
+    
 
 rule_map = dict(SHIELDSYMBOL=None,
                 RASTERMARKERSYMBOL=None,
@@ -60,7 +62,6 @@ rule_map = dict(SHIELDSYMBOL=None,
                 SIMPLEMARKERSYMBOL='PointSymbolizer')
 
 tags = dict()
-
 
 
 def add_rules(ele, layer):
@@ -95,7 +96,7 @@ import string
 
 def convert_to_hex_letter(num):
     dl = string.hexdigits
-    dn = [16*x for x in range(len(digits))]
+    dn = [16*x for x in range(len(string.hexdigits))]
     for val in dn:
         if num == val:
             return "%s0" %dl[num/16]
@@ -107,17 +108,15 @@ def convert_to_hex_letter(num):
         
         
 
-rule_handler = dict('RANGE'=filter_rule,
-                    'EXACT'=normal_rule,
-                    'OTHER'=normal_rule)
+rule_handler = dict(RANGE=filter_rule,
+                    EXACT=normal_rule,
+                    OTHER=normal_rule)
 
-css_param_map = dict(stroke)
-        
-#     rules_nofilter = layer.xpath('.//EXACT')
-#     rules_filter = layer.xpath('.//RANGE')
-#     rules_other = layer.xpath('.//OTHER')
-#     for rule in itertools.chain(rules_nofilter, rules_filter, rules_other):
-#         rule[0].tag
+css_param_map = dict()
+#      <CssParameter name="stroke">#6E6E6E</CssParameter>
+#                   <CssParameter name="stroke-width">1</CssParameter>
+#                   <CssParameter name="stroke-linejoin">round</CssParameter>
+#                   <CssParameter name="stroke-linecap">butt</CssParameter>
 
 
 
