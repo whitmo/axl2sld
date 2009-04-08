@@ -84,6 +84,8 @@ def add_rules(ele, layer):
         sld_sym = make_symbol(rule, axl_sym)
         if axl_sym.tag not in ("TRUETYPEMARKERSYMBOL", "TEXTSYMBOL"):
             filters = make_filters(rule, axl_sym)
+        else:
+            print axl_sym.text
         #rule_handler.get(parent.tag, normal_rule)(rule, axl_sym)
 
 def make_rule(axl_ele, fts):
@@ -136,6 +138,7 @@ def make_filters(rule, axl_sym):
     return rule
 filter_rule = make_filters 
 
+
 def aquire_attr(ele, attr, tag=None, strict=True):
     found = None
     orig = ele
@@ -151,34 +154,10 @@ def aquire_attr(ele, attr, tag=None, strict=True):
         found = ele.attrib.get(attr, None)
     return found
 
+
 def name_and_literal(ele, axl, litval):
     sld_sub(ele, "PropertyName").text = aquire_attr(axl, 'lookupfield')
     sld_sub(ele, "Literal").text = unicode(litval)
-    
-
-"""
-<!-- exact -->
-<Filter>
-                <PropertyIsEqualTo>
-                  <PropertyName>OFFENDERS</PropertyName>
-                  <Literal>0</Literal>
-                </PropertyIsEqualTo>
-              </Filter>
-
-<!-- range -->              
- <Filter>
-                <PropertyIsGreaterThan>
-                  <PropertyName>OFFENDERS</PropertyName>
-                  <Literal>0</Literal>
-                </PropertyIsGreaterThan>
-                <PropertyIsLessThanOrEqualTo>
-                  <PropertyName>OFFENDERS</PropertyName>
-                  <Literal>2</Literal>
-                </PropertyIsLessThanOrEqualTo>
-              </Filter>
-              
-"""
-
 
 
 def normal_rule(rule, axl_sym):
