@@ -82,9 +82,9 @@ def add_rules(ele, layer):
         #parent = axl_sym.getparent()
         rule = make_rule(axl_sym, ele)
         sld_sym = make_symbol(rule, axl_sym)
-        filters = make_filters(rule, axl_sym)
+        if axl_sym.tag not in ("TRUETYPEMARKERSYMBOL", "TEXTSYMBOL"):
+            filters = make_filters(rule, axl_sym)
         #rule_handler.get(parent.tag, normal_rule)(rule, axl_sym)
-        
 
 def make_rule(axl_ele, fts):
     rule = sld_subelement(fts, "Rule")
@@ -93,19 +93,68 @@ def make_rule(axl_ele, fts):
     if title is not None:
         sld_subelement(rule, "Title").text = title
     return rule
-        
-def filter_rule(rule, axl_sym):
+
+_axl = ("OTHER", "RANGE", "EXACT")
+
+eq_map = dict(upper=dict(high='PropertyIsLessThanOrEqualTo',
+                         low='PropertyIsGreaterThan'),
+              lower=dict(high='PropertyIsLessThan',
+                         low='PropertyIsGreaterThanOrEqualTo',
+                         )
+              )
+eq_map[None] = dict(high='PropertyIsLessThan',
+                    low='PropertyIsLessThanOrEqualTo')
+
+def make_filters(rule, axl_sym):
     "build rule with filter ala RANGE"
     parent = axl_sym.getparent()
     tag = parent.tag
-    if tag == "OTHER":
+    if tag not in _axl or tag == _axl[0]:
         return
 
-    if tag == "RANGE":
-        pass
+    filt = sld_sub(rule, "Filter")
+
+    if tag == _axl[1]:
+        equality = aquire_attr(axl_sym, "equality", _axl[1])
+
+        lt = sld_sub(filt, eq_map[equality]['high'])
+        top = float(aquire_attr(axl_sym, "upper", _axl[1]))
+        name_and_literal(lt, axl_sym, top)
         
-        
+        gt = sld_sub(filt, eq_map[equality]['low'])
+        bot = float(aquire_attr(axl_sym, "lower", _axl[1]))
+        name_and_literal(gt, axl_sym, bot)
+    else:
+        try:
+            val = int(aquire_attr(axl_sym, "value", _axl[2]))
+            eq = sld_sub(filt, 'PropertyIsEqualTo')
+            name_and_literal(eq, axl_sym, val)
+        except ValueError:
+            #@@ exact + geometry, catch before?
+            pass
+
     return rule
+filter_rule = make_filters 
+
+def aquire_attr(ele, attr, tag=None, strict=True):
+    found = None
+    orig = ele
+    while found == None and ele is not None:
+        parent = ele.getparent()
+        ele = parent
+        if ele is None:
+            if strict:
+                raise ValueError(orig)
+            continue
+        if tag is not None and parent.tag != tag:
+            continue
+        found = ele.attrib.get(attr, None)
+    return found
+
+def name_and_literal(ele, axl, litval):
+    sld_sub(ele, "PropertyName").text = aquire_attr(axl, 'lookupfield')
+    sld_sub(ele, "Literal").text = unicode(litval)
+    
 
 """
 <!-- exact -->
@@ -130,7 +179,7 @@ def filter_rule(rule, axl_sym):
               
 """
 
-make_filters = filter_rule
+
 
 def normal_rule(rule, axl_sym):
     "nothing fancy rule"
