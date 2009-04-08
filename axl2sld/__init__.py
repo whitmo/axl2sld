@@ -46,6 +46,8 @@ def transform_to_sldtree(layer):
     namedlayer = sld_subelement(sldtree, 'NamedLayer')
     name = sld_subelement(namedlayer, "Name")
     layer_name = name.text = "alachua:%s" %layer.attrib['id'].split('.')[1]
+    if name == "alachua:libraries":
+        import pdb;pdb.set_trace()
 
     userstyle = sld_subelement(namedlayer, "UserStyle")
     fts = sld_subelement(userstyle, "FeatureTypeStyle")
@@ -85,7 +87,7 @@ def add_rules(ele, layer):
         if axl_sym.tag not in ("TRUETYPEMARKERSYMBOL", "TEXTSYMBOL"):
             filters = make_filters(rule, axl_sym)
         else:
-            print axl_sym.text
+            make_text(sld_sym, axl_sym)
         #rule_handler.get(parent.tag, normal_rule)(rule, axl_sym)
 
 def make_rule(axl_ele, fts):
@@ -174,12 +176,10 @@ def normal_rule(rule, axl_sym):
 
 make_symbol = normal_rule
 
-def normal_text(text, axl_sym): 
+
+def make_text(text, axl_sym): 
     "creates ts" 
     pass 
-
-
-make_text = normal_text 
 
 
 def add_stroke_params(stroke, axl_sym):
@@ -192,9 +192,6 @@ def add_stroke_params(stroke, axl_sym):
     sld_sub(stroke, "CssParameter", dict(name='stroke')).text = hexcolor
     sld_sub(stroke, "CssParameter", dict(name='stroke-width')).text = strokewidth
     sld_sub(stroke, "CssParameter", dict(name='stroke-opacity')).text = strokeopacity
-
-
-
 
 
 def add_fill_params(sld_sym, axl_sym):
