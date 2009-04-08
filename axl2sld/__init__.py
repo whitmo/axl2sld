@@ -103,16 +103,18 @@ def normal_rule(rule, axl_sym):
         add_fill_params(fill, axl_sym)
     if axl_sym.attrib.get("boundary") is not None:
         stroke = sld_subelement(sld_sym, "Stroke")
+        add_stroke_params(stroke, axl_sym)
+        print tostring(stroke, pretty_print=True)
     return rule
 
-def add_stroke_params(sld_sym, axl_sym):
+def add_stroke_params(stroke, axl_sym):
 # todo    
 ##                              boundarywidth='stroke-width',
 ##                              boundarytransparency='stroke-opacity',
     strokecolor = axl_sym.attrib['boundarycolor']
     digits = strokecolor.split(',')
-    hexcolor = "#%s%s%s" %[convert_to_hex_letter(dig) for dig in digits]
-    sld_sub(sld_sym, "CssParameter", dict(name='stroke')).text = hexcolor
+    hexcolor = "#%s%s%s" %tuple([convert_to_hex_letter(int(dig)) for dig in digits])
+    sld_sub(stroke, "CssParameter", dict(name='stroke')).text = hexcolor
 
     
 
