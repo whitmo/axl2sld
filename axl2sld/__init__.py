@@ -57,13 +57,15 @@ def transform_to_sldtree(layer):
     return sldtree
     
 
-rule_map = dict(SHIELDSYMBOL=None,
-                RASTERMARKERSYMBOL=None,
-                SIMPLEPOLYGONSYMBOL='PolygonSymbolizer',
-                SIMPLELINESYMBOL='LineSymbolizer',
-                TEXTSYMBOL='TextSymbolizer',
-                TRUETYPEMARKERSYMBOL='TextSymbolizer',
-                SIMPLEMARKERSYMBOL='PointSymbolizer')
+symbol_map = dict(
+    RASTERMARKERSYMBOL=None,
+    SHIELDSYMBOL=None,
+    SIMPLELINESYMBOL='LineSymbolizer',
+    SIMPLEMARKERSYMBOL='PointSymbolizer',
+    SIMPLEPOLYGONSYMBOL='PolygonSymbolizer',
+    TEXTSYMBOL='TextSymbolizer',
+    TRUETYPEMARKERSYMBOL='TextSymbolizer'
+    )
 
 
 def add_rules(ele, layer):
@@ -73,13 +75,16 @@ def add_rules(ele, layer):
         return
     gr = gr.pop()
 
-    symbols = [gr.xpath('.//%s' %tag) for tag in rule_map.keys() if rule_map[tag]]
+    symbols = [gr.xpath('.//%s' %tag) for tag in symbol_map.keys() if symbol_map[tag]]
 
     for axl_sym in itertools.chain(*symbols):
         # tags.update((x, None) for x in axl_sym.attrib.keys()) # debug
-        parent = axl_sym.getparent()
+        #parent = axl_sym.getparent()
         rule = make_rule(axl_sym, ele)
-        rule_handler.get(parent.tag, normal_rule)(rule, axl_sym)
+        sld_sym = make_symbol(rule, axl_sym)
+        filters = make_filters(rule, axl_sym)
+        #rule_handler.get(parent.tag, normal_rule)(rule, axl_sym)
+        
 
 def make_rule(axl_ele, fts):
     rule = sld_subelement(fts, "Rule")
@@ -91,12 +96,45 @@ def make_rule(axl_ele, fts):
         
 def filter_rule(rule, axl_sym):
     "build rule with filter ala RANGE"
-    rule = normal_rule(rule, axl_sym)
+    parent = axl_sym.getparent()
+    tag = parent.tag
+    if tag == "OTHER":
+        return
+
+    if tag == "RANGE":
+        pass
+        
+        
     return rule
+
+"""
+<!-- exact -->
+<Filter>
+                <PropertyIsEqualTo>
+                  <PropertyName>OFFENDERS</PropertyName>
+                  <Literal>0</Literal>
+                </PropertyIsEqualTo>
+              </Filter>
+
+<!-- range -->              
+ <Filter>
+                <PropertyIsGreaterThan>
+                  <PropertyName>OFFENDERS</PropertyName>
+                  <Literal>0</Literal>
+                </PropertyIsGreaterThan>
+                <PropertyIsLessThanOrEqualTo>
+                  <PropertyName>OFFENDERS</PropertyName>
+                  <Literal>2</Literal>
+                </PropertyIsLessThanOrEqualTo>
+              </Filter>
+              
+"""
+
+make_filters = filter_rule
 
 def normal_rule(rule, axl_sym):
     "nothing fancy rule"
-    sld_sym = sld_subelement(rule, rule_map[axl_sym.tag])
+    sld_sym = sld_subelement(rule, symbol_map[axl_sym.tag])
     filltype = axl_sym.attrib.get("filltype")
     if filltype and filltype == 'solid':
         fill = sld_subelement(sld_sym, "Fill")
@@ -104,8 +142,9 @@ def normal_rule(rule, axl_sym):
     if axl_sym.attrib.get("boundary") is not None:
         stroke = sld_subelement(sld_sym, "Stroke")
         add_stroke_params(stroke, axl_sym)
-        print tostring(stroke, pretty_print=True)
-    return rule
+    return sld_sym
+
+make_symbol = normal_rule
 
 def add_stroke_params(stroke, axl_sym):
 # todo    
@@ -116,7 +155,6 @@ def add_stroke_params(stroke, axl_sym):
     hexcolor = "#%s%s%s" %tuple([convert_to_hex_letter(int(dig)) for dig in digits])
     sld_sub(stroke, "CssParameter", dict(name='stroke')).text = hexcolor
 
-    
 
 def add_fill_params(sld_sym, axl_sym):
     fillcolor = axl_sym.attrib['fillcolor']
