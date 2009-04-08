@@ -11,15 +11,15 @@ import itertools
 curdir = os.path.abspath(os.curdir)
 
 usage = "usage: %prog [options] inputdir [inputdir, etc]"
-parser = optparse.OptionParser(usage=usage)
+main_parser = optparse.OptionParser(usage=usage)
 
-parser.add_option('-o', '--output',
+main_parser.add_option('-o', '--output',
                   help="Output directory",
                   action="store",
                   dest="output_dir",
                   default=curdir)
 
-@arg_parser(parser)
+@arg_parser(main_parser)
 def main(args=None, options=None, parser=None):
     listdir = os.listdir(args[1]) # multiples?
     axls = [x for x in listdir if x.endswith('.axl')]
@@ -27,6 +27,38 @@ def main(args=None, options=None, parser=None):
     for tree in sld_trees:
         continue
     pprint(tags.keys())
+
+usage = "usage: %prog [options] inputdir"
+explorer_parser = optparse.OptionParser(usage=usage)
+
+explorer_parser.add_option('-x', '--xpath',
+                           help="Xpath Expression",
+                           action="store",
+                           dest="xpath",
+                           default="")
+
+explorer_parser.add_option('-e', '--extension',
+                           help="file extension",
+                           action="store",
+                           dest="file_ext",
+                           default='.sld')
+
+
+ATTRIBS = dict()
+
+@arg_parser(explorer_parser)
+def explorer(args=None, options=None, parser=None):
+    opdir = args[1]
+    listdir = os.listdir(opdir) # multiples?
+    for fp in [fp for fp in listdir if fp.endswith(options.file_ext)]:
+        tree = etree.parse(os.path.join(opdir, fp))
+        #import pdb;pdb.set_trace()
+        find = etree.ETXPath(options.xpath)
+        for res in find(tree):
+            tags[res.tag]=None
+            ATTRIBS.update((x, None) for x in res.attrib.values())
+    pprint(tags.keys())
+    pprint(ATTRIBS.keys())
 
 
 def build_sld_trees(axls):
@@ -70,11 +102,13 @@ def add_rules(ele, layer):
         return
     gr = gr.pop()
 
+
     symbols = [gr.xpath('.//%s' %tag) for tag in rule_map.keys() if rule_map[tag]]
 
     for sym in itertools.chain(*symbols):
-        tag = sym.getparent().tag
-        rule_handler.get(tag, normal_rule)(sym, ele)
+        tags.update((x, None) for x in sym.attrib.keys())
+#         tag = sym.getparent().tag
+#         #rule_handler.get(tag, normal_rule)(sym, ele)
 
 def filter_rule(ele, symbol):
     "build rule with filter"
@@ -113,11 +147,55 @@ rule_handler = dict(RANGE=filter_rule,
                     OTHER=normal_rule)
 
 css_param_map = dict()
-#      <CssParameter name="stroke">#6E6E6E</CssParameter>
-#                   <CssParameter name="stroke-width">1</CssParameter>
-#                   <CssParameter name="stroke-linejoin">round</CssParameter>
-#                   <CssParameter name="stroke-linecap">butt</CssParameter>
 
+# we need to create a mapping between attributes in axl symbols
+# and resulting CssParameter names
+
+arc_attribs = [
+    'angle',
+    'antialiasing',
+    'boundary',
+    'boundarycaptype',
+    'boundarycolor',
+    'boundaryjointype',
+    'boundarytransparency',
+    'boundarytype',
+    'boundarywidth',
+    'captype',
+    'character',
+    'color',
+    'fillcolor',
+    'fillinterval',
+    'filltransparency',
+    'filltype'
+    'font',
+    'fontcolor',
+    'fontsize',
+    'fontstyle',
+    'glowing',
+    'jointype',
+    'outline',
+    'overlap',
+    'rotatemethod',
+    'transparency',
+    'type',
+    'usecentroid',
+    'width',
+    ]
+
+css_param = ['stroke-linejoin',
+             'font-size',
+             'fill-opacity',
+             'stroke',
+             'stroke-linecap',
+             'font-family',
+             'font-style',
+             'fill',
+             'stroke-width',
+             'stroke-opacity',
+             'stroke-dashoffset',
+             'stroke-dasharray',
+             'font-weight']
 
 
 nsmap = dict(sld="http://www.opengis.net/sld",
