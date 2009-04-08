@@ -1,3 +1,8 @@
+# todo:
+# TRUETYPEMARKER     -- pointsymbolizer for graphics later
+# RASTERMARKERSYMBOL --
+# xsi:SchemaLocation
+# ns0:
 from copy import copy
 from lxml import etree
 from lxml.builder import ElementMaker
@@ -39,6 +44,10 @@ def build_sld_trees(axls):
             yield transform_to_sldtree(layer)
 
 
+def pretty(ele):
+    print tostring(ele, pretty_print=True)
+
+
 def transform_to_sldtree(layer):
     sldtree = SLD('StyledLayerDescriptor',
                   {"schemaLocation":"http://www.opengis.net/sld StyledLayerDescriptor.xsd",
@@ -46,7 +55,7 @@ def transform_to_sldtree(layer):
     namedlayer = sld_subelement(sldtree, 'NamedLayer')
     name = sld_subelement(namedlayer, "Name")
     layer_name = name.text = "alachua:%s" %layer.attrib['id'].split('.')[1]
-    if name == "alachua:libraries":
+    if layer_name == "alachua:libraries":
         import pdb;pdb.set_trace()
 
     userstyle = sld_subelement(namedlayer, "UserStyle")
@@ -89,6 +98,7 @@ def add_rules(ele, layer):
         else:
             make_text(sld_sym, axl_sym)
         #rule_handler.get(parent.tag, normal_rule)(rule, axl_sym)
+
 
 def make_rule(axl_ele, fts):
     rule = sld_subelement(fts, "Rule")
@@ -235,13 +245,22 @@ def main(args=None, options=None, parser=None):
     if not os.path.exists(options.output_dir):
         os.mkdir(options.output_dir)
     findname = etree.ETXPath("//{http://www.opengis.net/sld}NamedLayer/{http://www.opengis.net/sld}Name")
+    filepaths = dict()
     for tree in sld_trees:
         assert len(tree)
         res = findname(tree)
         assert len(res), ValueError(tostring(tree, pretty_print=True))
         dummy, name = res[0].text.split(":")
-        fh = open(os.path.join(options.output_dir, name), 'w+')
+        filepath = os.path.join(options.output_dir, name)
+        if filepaths.has_key(filepath):
+            filepaths[filepath] += 1
+            filepath = filepath + str(filepaths[filepath])
+        else:
+            filepaths[filepath]=1                            
+        fh = open(filepath, 'w+')
         fh.write(tostring(tree, pretty_print=True))
+    #pprint([(x, y) for x, y in filepaths.items() if y>1])
+
 
 
 
@@ -298,50 +317,4 @@ arc_attrib_to_css_map = dict(font='font-family',
                              fillcolor='fill',
                              filltransparency='fill-opacity')
 
-arc_attribs = [
-    'angle',
-    'antialiasing',
-    'boundary',#
-    'boundarycaptype',
-    'boundarycolor',#
-    'boundaryjointype',
-    'boundarytransparency',#
-    'boundarytype',
-    'boundarywidth',#
-    'captype',
-    'character',
-    'color',
-    'fillcolor',#
-    'fillinterval',
-    'filltransparency',
-    'filltype'
-    'font', # done
-    'fontcolor',
-    'fontsize',#
-    'fontstyle',#
-    'glowing',
-    'jointype',
-    'outline',
-    'overlap',
-    'rotatemethod',
-    'transparency',
-    'type',
-    'usecentroid',
-    'width',
-    ]
 
-css_param = [
-    'fill',#
-    'fill-opacity',#
-    'font-family', #
-    'font-size',#
-    'font-style',#
-    'font-weight'
-    'stroke',
-    'stroke-dasharray',
-    'stroke-dashoffset',
-    'stroke-linecap',
-    'stroke-linejoin',
-    'stroke-opacity',
-    'stroke-width',#
-    ]
