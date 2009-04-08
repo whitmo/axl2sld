@@ -139,11 +139,10 @@ def main(args=None, options=None, parser=None):
         res = findname(tree)
         assert len(res), ValueError(tostring(tree, pretty_print=True))
         dummy, name = res[0].text.split(":")
-        print name
-        fh = open(os.path.join(options.output_dir, name), 'w')
 
+        fh = open(os.path.join(options.output_dir, name), 'w+')
+        fh.write(tostring(tree, pretty_print=True))
 
-    #pprint(tags.keys())
 
 
 # explorer script
