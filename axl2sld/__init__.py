@@ -174,14 +174,27 @@ def normal_rule(rule, axl_sym):
 
 make_symbol = normal_rule
 
+def normal_text(text, axl_sym): 
+    "creates ts" 
+    pass 
+
+
+make_text = normal_text 
+
+
 def add_stroke_params(stroke, axl_sym):
-# todo    
-##                              boundarywidth='stroke-width',
-##                              boundarytransparency='stroke-opacity',
+    strokecolor = axl_sym.attrib['boundarycolor']
+    strokewidth = axl_sym.attrib['boundarywidth']
+    strokeopacity = axl_sym.attrib['boundarytransparency']
     strokecolor = axl_sym.attrib['boundarycolor']
     digits = strokecolor.split(',')
     hexcolor = "#%s%s%s" %tuple([convert_to_hex_letter(int(dig)) for dig in digits])
     sld_sub(stroke, "CssParameter", dict(name='stroke')).text = hexcolor
+    sld_sub(stroke, "CssParameter", dict(name='stroke-width')).text = strokewidth
+    sld_sub(stroke, "CssParameter", dict(name='stroke-opacity')).text = strokeopacity
+
+
+
 
 
 def add_fill_params(sld_sym, axl_sym):
