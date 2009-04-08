@@ -25,8 +25,8 @@ def emaker(prefix):
 
 SLD = emaker('sld')
 
-def sld_subelement(parent, name, attrib=None):
-    ele = SLD(name)
+def sld_subelement(parent, name, attrib=dict()):
+    ele = SLD(name, attrib)
     parent.append(ele)
     return ele
 
