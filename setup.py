@@ -25,5 +25,6 @@ setup(name='axl2sld',
       # -*- Entry points: -*-
       [console_scripts]
       axl2sld=axl2sld:main
+      sld_explore=axl2sld:explorer
       """,
       )
