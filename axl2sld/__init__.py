@@ -140,7 +140,6 @@ def convert_to_hex_letter(num):
         else:
             return "%s%s" %(dl[last], dl[num - last])
         
-        
 
 rule_handler = dict(RANGE=filter_rule,
                     EXACT=normal_rule,
@@ -151,27 +150,40 @@ css_param_map = dict()
 # we need to create a mapping between attributes in axl symbols
 # and resulting CssParameter names
 
+# empty "#" beside resolved mappings
+
+# INCOMPLETE
+arc_attrib_to_css_map = dict(font='font-family',
+                             fontstyle='font-style',
+                             fontsize='font-size',
+                             boundary=None,
+                             boundarywidth='stroke-width',
+                             boundarycolor='stroke',
+                             boundarytransparency='stroke-opacity',
+                             fillcolor='fill',
+                             filltransparency='fill-opacity')
+
 arc_attribs = [
     'angle',
     'antialiasing',
-    'boundary',
+    'boundary',#
     'boundarycaptype',
-    'boundarycolor',
+    'boundarycolor',#
     'boundaryjointype',
-    'boundarytransparency',
+    'boundarytransparency',#
     'boundarytype',
-    'boundarywidth',
+    'boundarywidth',#
     'captype',
     'character',
     'color',
-    'fillcolor',
+    'fillcolor',#
     'fillinterval',
     'filltransparency',
     'filltype'
-    'font',
+    'font', # done
     'fontcolor',
-    'fontsize',
-    'fontstyle',
+    'fontsize',#
+    'fontstyle',#
     'glowing',
     'jointype',
     'outline',
@@ -183,19 +195,23 @@ arc_attribs = [
     'width',
     ]
 
-css_param = ['stroke-linejoin',
-             'font-size',
-             'fill-opacity',
-             'stroke',
-             'stroke-linecap',
-             'font-family',
-             'font-style',
-             'fill',
-             'stroke-width',
-             'stroke-opacity',
-             'stroke-dashoffset',
-             'stroke-dasharray',
-             'font-weight']
+css_param = [
+    'fill',#
+    'fill-opacity',#
+    'font-family', #
+    'font-size',#
+    'font-style',#
+    'font-weight'
+    'stroke',
+    'stroke-dasharray',
+    'stroke-dashoffset',
+    'stroke-linecap',
+    'stroke-linejoin',
+    'stroke-opacity',
+    'stroke-width',#
+    ]
+
+
 
 
 nsmap = dict(sld="http://www.opengis.net/sld",
