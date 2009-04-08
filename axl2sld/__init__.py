@@ -25,11 +25,12 @@ def emaker(prefix):
 
 SLD = emaker('sld')
 
-def sld_subelement(parent, name):
+def sld_subelement(parent, name, attrib=None):
     ele = SLD(name)
     parent.append(ele)
     return ele
 
+sld_sub = sld_subelement
 
 def build_sld_trees(axls):
     for axl in axls:
@@ -74,40 +75,62 @@ def add_rules(ele, layer):
 
     symbols = [gr.xpath('.//%s' %tag) for tag in rule_map.keys() if rule_map[tag]]
 
-    for sym in itertools.chain(*symbols):
-        # tags.update((x, None) for x in sym.attrib.keys()) # debug
-        tag = sym.getparent().tag
-        rule_handler.get(tag, normal_rule)(sym, ele, layer)
+    for axl_sym in itertools.chain(*symbols):
+        # tags.update((x, None) for x in axl_sym.attrib.keys()) # debug
+        parent = axl_sym.getparent()
+        rule = make_rule(axl_sym, ele)
+        rule_handler.get(parent.tag, normal_rule)(rule, axl_sym)
 
-def filter_rule(ele, symbol, layer):
-    "build rule with filter ala RANGE"
-    rule = normal_rule(ele, symbol)
-    return rule
-
-def normal_rule(ele, symbol, layer=None):
-    "nothing fancy rule"
-    rule = sld_subelement(ele, "Rule")
-    parent = symbol.getparent()
+def make_rule(axl_ele, fts):
+    rule = sld_subelement(fts, "Rule")
+    parent = axl_ele.getparent()
     title = parent.attrib.get('label', None)
     if title is not None:
         sld_subelement(rule, "Title").text = title
-    sld_sym = sld_subelement(rule, rule_map[ele.tag])
-    
+    return rule
+        
+def filter_rule(rule, axl_sym):
+    "build rule with filter ala RANGE"
+    rule = normal_rule(rule, axl_sym)
     return rule
 
+def normal_rule(rule, axl_sym):
+    "nothing fancy rule"
+    sld_sym = sld_subelement(rule, rule_map[axl_sym.tag])
+    filltype = axl_sym.attrib.get("filltype")
+    if filltype and filltype == 'solid':
+        fill = sld_subelement(sld_sym, "Fill")
+        add_fill_params(fill, axl_sym)
+    if axl_sym.attrib.get("boundary") is not None:
+        stroke = sld_subelement(sld_sym, "Stroke")
+    return rule
 
+def add_stroke_params(sld_sym, axl_sym):
+# todo    
+##                              boundarywidth='stroke-width',
+##                              boundarytransparency='stroke-opacity',
+    strokecolor = axl_sym.attrib['boundarycolor']
+    digits = strokecolor.split(',')
+    hexcolor = "#%s%s%s" %[convert_to_hex_letter(dig) for dig in digits]
+    sld_sub(sld_sym, "CssParameter", dict(name='stroke')).text = hexcolor
+
+    
+
+def add_fill_params(sld_sym, axl_sym):
+    fillcolor = axl_sym.attrib['fillcolor']
+    digits = fillcolor.split(',')
+    hexcolor = "#%s%s%s" %tuple([convert_to_hex_letter(int(dig)) for dig in digits])
+    sld_sub(sld_sym, "CssParameter", dict(name='fill')).text = hexcolor
+    opacity = axl_sym.attrib.get('filltransparency', None)
+    if opacity is not None:
+        sld_sub(sld_sym, "CssParameter", dict(name='fill-opacity')).text = opacity
+        
+hex_seq = [16*x for x in range(len(string.hexdigits))]
 
 def convert_to_hex_letter(num):
-    dl = string.hexdigits
-    dn = [16*x for x in range(len(string.hexdigits))]
-    for val in dn:
-        if num == val:
-            return "%s0" %dl[num/16]
-        if num > val:
-            last = val
-            continue
-        else:
-            return "%s%s" %(dl[last], dl[num - last])
+    first = string.hexdigits[num / 16]
+    mod = string.hexdigits[num % 16]
+    return "%s%s" %(first, mod)
         
 
 
@@ -139,7 +162,6 @@ def main(args=None, options=None, parser=None):
         res = findname(tree)
         assert len(res), ValueError(tostring(tree, pretty_print=True))
         dummy, name = res[0].text.split(":")
-
         fh = open(os.path.join(options.output_dir, name), 'w+')
         fh.write(tostring(tree, pretty_print=True))
 
