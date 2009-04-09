@@ -66,8 +66,8 @@ def make_fts(layer, layer_name):
     fts = SLD.FeatureTypeStyle(
         SLD.Name(layer_name),
         SLD.Title(layer.attrib['name']),
-        SLD.Abstract(ABSTRACT),
-        SLD.FeatureTypeName(layer_name)
+        SLD.Abstract(ABSTRACT)
+        #SLD.FeatureTypeName(layer_name)
         )
     add_rules(fts, layer)
     return fts
@@ -110,15 +110,32 @@ geometry_map = dict(point='circle')
 def populate_point_symbolizer(sld_sym, axl_sym):
     layer = axl_sym.xpath("ancestor::LAYER")[0]
     atype = layer.xpath("./DATASET")[0].attrib['type']
-    if atype == 'point':
-        geo = SLD.Geometry(OGC.PropertyName("SHAPE"))
-        graphic = SLD.Graphic(
-            SLD.Mark(SLD.WellKnownName('circle'),
-                     SLD.Fill(SLD.CssParameter('',dict(name=""))),
-                     ),
-            SLD.Size(),
-            )
-        sld_sym.extend((geo, graphic))
+    pretty(axl_sym)
+    geo = SLD.Geometry(OGC.PropertyName("SHAPE"))
+        
+    graphic = SLD.Graphic(
+        make_pt_mark(axl_sym),
+        SLD.Size(axl_sym.attrib['width']),
+        )
+    sld_sym.extend((geo, graphic))
+
+
+def make_pt_mark(axl_sym, geo='circle', stroke_width=1.0):
+    at = axl_sym.attrib
+    outline = at.get('outline')
+    color = at.get('color')
+    opacity = at.get('transparency')
+    outline = at.get('outline')
+    fill = SLD.Fill(cssparam('fill', hexcolor(color)))
+    if opacity is not None:
+        fill.append(cssparam("fill-opacity", opacity))
+    members = fill,
+    if outline is not None:
+        members = fill, SLD.Stroke(cssparam('stroke', hexcolor(outline)),
+                                   cssparam('stroke-width', str(stroke_width)))
+    return SLD.Mark(
+        SLD.WellKnownName(geo),
+        *members)
 
 
 def make_rule(axl_ele, fts):
@@ -128,6 +145,7 @@ def make_rule(axl_ele, fts):
     if title is not None:
         sld_subelement(rule, "Title").text = title
     return rule
+
 
 _axl = ("OTHER", "RANGE", "EXACT")
 
@@ -189,8 +207,9 @@ def aquire_attr(ele, attr, tag=None, strict=True):
 
 
 def name_and_literal(ele, axl, litval):
-    ele.append(SLD.PropertyName(aquire_attr(axl, 'lookupfield')))
-    ele.append(LITERAL(unicode(litval)))
+    ele.extend((OGC.PropertyName(aquire_attr(axl, 'lookupfield')),
+                OGC.Literal(unicode(litval))))
+    return ele
 
 
 def normal_rule(rule, axl_sym):
@@ -218,13 +237,16 @@ def add_stroke_params(stroke, axl_sym):
     strokewidth = axl_sym.attrib['boundarywidth']
     strokeopacity = axl_sym.attrib['boundarytransparency']
     strokecolor = axl_sym.attrib['boundarycolor']
-    digits = strokecolor.split(',')
-    hexcolor = "#%s%s%s" %tuple([convert_to_hex_letter(int(dig)) for dig in digits])
     stroke.extend((
-        SLD.CssParameter(OGC.Literal(hexcolor), dict(name='stroke')),
+        SLD.CssParameter(OGC.Literal(hexcolor(strokecolor)), dict(name='stroke')),
         SLD.CssParameter(OGC.Literal(strokewidth), dict(name='stroke')),
         SLD.CssParameter(OGC.Literal(strokeopacity), dict(name='stroke'))
         ))
+
+def hexcolor(rgb):
+    digits = rgb.split(',')
+    hexcolor = "#%s%s%s" %tuple([convert_to_hex_letter(int(dig)) for dig in digits])
+    return hexcolor
 
 def cssparam(name, value, parent=None):
     css = SLD.CssParameter(OGC.Literal(value), dict(name=name))
