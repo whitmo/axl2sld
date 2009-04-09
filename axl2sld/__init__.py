@@ -14,6 +14,8 @@ import optparse
 import os
 import string
 
+
+ABSTRACT = "styles for the alachua project" #@@
 curdir = os.path.abspath(os.curdir)
 
 nsmap = dict(sld="http://www.opengis.net/sld",
@@ -50,22 +52,25 @@ def pretty(ele):
     print tostring(ele, pretty_print=True)
 
 
+
 def transform_to_sldtree(layer):
-    sldtree = SLD('StyledLayerDescriptor',
-                  {"schemaLocation":"http://www.opengis.net/sld StyledLayerDescriptor.xsd",
-                   "version":'1.0.0'})
-    namedlayer = sld_subelement(sldtree, 'NamedLayer')
-    name = sld_subelement(namedlayer, "Name")
-    layer_name = name.text = "alachua:%s" %layer.attrib['id'].split('.')[1]
-    userstyle = sld_subelement(namedlayer, "UserStyle")
-    fts = sld_subelement(userstyle, "FeatureTypeStyle")
-    sld_subelement(fts, "Name").text = layer_name
-    sld_subelement(fts, "Title").text = layer.attrib['name']
-    sld_subelement(fts, "Abstract").text = "styles for the alachua project"
-    sld_subelement(fts, "FeatureTypeName").text = layer_name
-    add_rules(fts, layer)
+    layer_name = "alachua:%s" %layer.attrib['id'].split('.')[1]
+    sldtree = SLD.StyledLayerDescriptor(
+        SLD.NamedLayer(SLD.Name(layer_name),
+                       SLD.UserStyle(make_fts(layer, layer_name))),
+        {"schemaLocation":"http://www.opengis.net/sld StyledLayerDescriptor.xsd",
+         "version":'1.0.0'})
     return sldtree
-    
+
+def make_fts(layer, layer_name):
+    fts = SLD.FeatureTypeStyle(
+        SLD.Name(layer_name),
+        SLD.Title(layer.attrib['name']),
+        SLD.Abstract(ABSTRACT),
+        SLD.FeatureTypeName(layer_name)
+        )
+    add_rules(fts, layer)
+    return fts
 
 symbol_map = dict(
     RASTERMARKERSYMBOL=None,
@@ -93,15 +98,27 @@ def add_rules(ele, layer):
         rule = make_rule(axl_sym, ele)
         sld_sym = make_symbol(rule, axl_sym)
         if sld_sym.tag.endswith('PointSymbolizer'):
-            pass
+            populate_point_symbolizer(sld_sym, axl_sym)
         if axl_sym.tag not in ("TRUETYPEMARKERSYMBOL", "TEXTSYMBOL"):
             filters = make_filters(rule, axl_sym)
         else:
             make_text(sld_sym, axl_sym)
 
 
+geometry_map = dict(point='circle')
+
 def populate_point_symbolizer(sld_sym, axl_sym):
-    pass
+    layer = axl_sym.xpath("ancestor::LAYER")[0]
+    atype = layer.xpath("./DATASET")[0].attrib['type']
+    if atype == 'point':
+        geo = SLD.Geometry(OGC.PropertyName("SHAPE"))
+        graphic = SLD.Graphic(
+            SLD.Mark(SLD.WellKnownName('circle'),
+                     SLD.Fill(SLD.CssParameter('',dict(name=""))),
+                     ),
+            SLD.Size(),
+            )
+        sld_sym.extend((geo, graphic))
 
 
 def make_rule(axl_ele, fts):
@@ -170,10 +187,10 @@ def aquire_attr(ele, attr, tag=None, strict=True):
         found = ele.attrib.get(attr, None)
     return found
 
+
 def name_and_literal(ele, axl, litval):
     ele.append(SLD.PropertyName(aquire_attr(axl, 'lookupfield')))
     ele.append(LITERAL(unicode(litval)))
-
 
 
 def normal_rule(rule, axl_sym):
@@ -203,19 +220,26 @@ def add_stroke_params(stroke, axl_sym):
     strokecolor = axl_sym.attrib['boundarycolor']
     digits = strokecolor.split(',')
     hexcolor = "#%s%s%s" %tuple([convert_to_hex_letter(int(dig)) for dig in digits])
-    sld_sub(stroke, "CssParameter", dict(name='stroke')).text = hexcolor
-    sld_sub(stroke, "CssParameter", dict(name='stroke-width')).text = strokewidth
-    sld_sub(stroke, "CssParameter", dict(name='stroke-opacity')).text = strokeopacity
+    stroke.extend((
+        SLD.CssParameter(OGC.Literal(hexcolor), dict(name='stroke')),
+        SLD.CssParameter(OGC.Literal(strokewidth), dict(name='stroke')),
+        SLD.CssParameter(OGC.Literal(strokeopacity), dict(name='stroke'))
+        ))
 
+def cssparam(name, value, parent=None):
+    css = SLD.CssParameter(OGC.Literal(value), dict(name=name))
+    if parent is not None:
+        parent.append(css)
+    return css
 
 def add_fill_params(sld_sym, axl_sym):
     fillcolor = axl_sym.attrib['fillcolor']
     digits = fillcolor.split(',')
     hexcolor = "#%s%s%s" %tuple([convert_to_hex_letter(int(dig)) for dig in digits])
-    sld_sub(sld_sym, "CssParameter", dict(name='fill')).text = hexcolor
+    cssparam('fill', hexcolor, sld_sym)
     opacity = axl_sym.attrib.get('filltransparency', None)
     if opacity is not None:
-        sld_sub(sld_sym, "CssParameter", dict(name='fill-opacity')).text = opacity
+        cssparam('fill-opacity', opacity, sld_sym)
         
 hex_seq = [16*x for x in range(len(string.hexdigits))]
 
