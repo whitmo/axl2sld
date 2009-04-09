@@ -24,11 +24,13 @@ nsmap = dict(sld="http://www.opengis.net/sld",
 
 def emaker(prefix):
     nsmap2 = copy(nsmap)
-    ns = nsmap2.pop(prefix)
+    ns = nsmap2[prefix]
     return ElementMaker(namespace=ns, nsmap=nsmap2)
 
 
 SLD = emaker('sld')
+OGC = emaker('ogc')
+LITERAL = OGC.Literal
 
 def sld_subelement(parent, name, attrib=dict()):
     ele = SLD(name, attrib)
@@ -55,9 +57,6 @@ def transform_to_sldtree(layer):
     namedlayer = sld_subelement(sldtree, 'NamedLayer')
     name = sld_subelement(namedlayer, "Name")
     layer_name = name.text = "alachua:%s" %layer.attrib['id'].split('.')[1]
-    if layer_name == "alachua:libraries":
-        import pdb;pdb.set_trace()
-
     userstyle = sld_subelement(namedlayer, "UserStyle")
     fts = sld_subelement(userstyle, "FeatureTypeStyle")
     sld_subelement(fts, "Name").text = layer_name
@@ -93,11 +92,16 @@ def add_rules(ele, layer):
         #parent = axl_sym.getparent()
         rule = make_rule(axl_sym, ele)
         sld_sym = make_symbol(rule, axl_sym)
+        if sld_sym.tag.endswith('PointSymbolizer'):
+            pass
         if axl_sym.tag not in ("TRUETYPEMARKERSYMBOL", "TEXTSYMBOL"):
             filters = make_filters(rule, axl_sym)
         else:
             make_text(sld_sym, axl_sym)
-        #rule_handler.get(parent.tag, normal_rule)(rule, axl_sym)
+
+
+def populate_point_symbolizer(sld_sym, axl_sym):
+    pass
 
 
 def make_rule(axl_ele, fts):
@@ -166,10 +170,10 @@ def aquire_attr(ele, attr, tag=None, strict=True):
         found = ele.attrib.get(attr, None)
     return found
 
-
 def name_and_literal(ele, axl, litval):
-    sld_sub(ele, "PropertyName").text = aquire_attr(axl, 'lookupfield')
-    sld_sub(ele, "Literal").text = unicode(litval)
+    ele.append(SLD.PropertyName(aquire_attr(axl, 'lookupfield')))
+    ele.append(LITERAL(unicode(litval)))
+
 
 
 def normal_rule(rule, axl_sym):
